@@ -1,0 +1,13 @@
+{
+  "name": "sistema-atendimento-ui",
+  "version": "1.0.0",
+  "description": "Tailwind CSS setup for SAC system",
+  "main": "index.js",
+  "scripts": {
+    "build": "tailwindcss -i ./app/static/css/src/input.css -o ./app/static/css/dist/output.css --watch",
+    "build:prod": "tailwindcss -i ./app/static/css/src/input.css -o ./app/static/css/dist/output.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
+  }
+}

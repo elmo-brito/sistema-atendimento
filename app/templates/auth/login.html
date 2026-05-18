@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Login - SAC Premium{% endblock %}
+
+{% block content %}
+<div class="flex flex-col items-center justify-center min-h-[70vh]">
+    <div class="w-full max-w-md">
+        <!-- Logo/Brand -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-royal text-ciano shadow-lg mb-4">
+                <span class="material-symbols-outlined text-4xl">headset_mic</span>
+            </div>
+            <h1 class="text-3xl font-extrabold text-noturno dark:text-white tracking-tight">Bem-vindo de volta</h1>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Acesse sua conta para gerenciar seus chamados</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 p-8">
+            <form method="post" class="space-y-6">
+                <div>
+                    <label for="email" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">E-mail Corporativo</label>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">mail</span>
+                        <input 
+                            type="email" 
+                            name="email" 
+                            id="email" 
+                            class="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-royal focus:border-royal outline-none transition-all dark:text-white"
+                            placeholder="seu@email.com"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="senha" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Senha</label>
+                        <a href="{{ url_for('auth.recuperar_senha') }}" class="text-xs font-medium text-royal hover:underline">Esqueceu a senha?</a>
+                    </div>
+                    <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">lock</span>
+                        <input 
+                            type="password" 
+                            name="senha" 
+                            id="senha" 
+                            class="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-royal focus:border-royal outline-none transition-all dark:text-white"
+                            placeholder="••••••••"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <input type="checkbox" id="remember" class="h-4 w-4 text-royal focus:ring-royal border-gray-300 rounded">
+                    <label for="remember" class="ml-2 block text-sm text-gray-600 dark:text-gray-400">Lembrar-me por 30 dias</label>
+                </div>
+
+                <button 
+                    type="submit" 
+                    class="w-full py-4 bg-gradient-primary text-white font-bold rounded-xl shadow-lg hover:shadow-royal/20 transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center"
+                >
+                    Entrar no Sistema
+                    <span class="material-symbols-outlined ml-2">arrow_forward</span>
+                </button>
+            </form>
+
+            <div class="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700 text-center">
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                    Não tem uma conta? 
+                    <a href="{{ url_for('auth.register') }}" class="font-bold text-royal hover:underline">Solicite acesso</a>
+                </p>
+            </div>
+        </div>
+        
+        <div class="mt-8 text-center text-xs text-gray-400">
+            &copy; 2026 SAC Premium - Versão 2.0.0
+        </div>
+    </div>
+</div>
+{% endblock %}

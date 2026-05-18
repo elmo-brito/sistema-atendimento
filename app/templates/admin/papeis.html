@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Papéis & Permissões - SAC Premium{% endblock %}
+{% block breadcrumb %}Administração / RBAC / Papéis{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-noturno dark:text-white">Papéis & Permissões</h1>
+        <button @click="$dispatch('open-role-modal')" class="px-4 py-2 bg-royal text-white rounded-xl text-sm font-bold shadow-lg shadow-royal/20 hover:bg-blue-700 transition-all">
+            Novo Papel
+        </button>
+    </div>
+
+    <!-- Roles Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for p in papeis %}
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-8">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-xl text-noturno dark:text-white">{{ p.nome }}</h3>
+                <span class="material-symbols-outlined text-gray-300">shield_person</span>
+            </div>
+            <p class="text-sm text-gray-500 mb-6">{{ p.descricao or 'Sem descrição.' }}</p>
+            
+            <div class="space-y-2">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Permissões Habilitadas</p>
+                <div class="flex flex-wrap gap-2">
+                    {% for perm in p.permissoes %}
+                    <span class="px-3 py-1 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg text-[10px] font-medium text-gray-600 dark:text-gray-300">
+                        {{ perm.nome }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal Novo Papel -->
+<div x-data="{ open: false }" x-show="open" @open-role-modal.window="open = true" class="fixed inset-0 z-[60] overflow-y-auto" x-cloak>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-black/50 transition-opacity" @click="open = false"></div>
+        <div class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-2xl w-full p-8">
+            <h3 class="text-xl font-bold mb-6">Criar Novo Papel</h3>
+            <form action="{{ url_for('admin.papeis') }}" method="post" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Papel</label>
+                            <input type="text" name="nome" required placeholder="Ex: Supervisor de N1" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-royal">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição</label>
+                            <textarea name="descricao" rows="4" placeholder="O que este papel pode fazer?" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-royal"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Atribuir Permissões</label>
+                        <div class="max-h-64 overflow-y-auto pr-2 space-y-1">
+                            {% for perm in permissoes %}
+                            <label class="flex items-center p-2 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg cursor-pointer transition-colors">
+                                <input type="checkbox" name="permissoes" value="{{ perm.id }}" class="h-4 w-4 text-royal rounded border-gray-300">
+                                <span class="ml-3 text-xs text-gray-600 dark:text-gray-300">{{ perm.nome }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
+                    <button type="button" @click="open = false" class="px-6 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-all">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-royal text-white text-sm font-bold rounded-xl shadow-lg shadow-royal/20 hover:bg-blue-700 transition-all">Criar Papel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Chamado #{{ solicitacao.protocolo }} - SAC Premium{% endblock %}
+{% block breadcrumb %}Chamados / Detalhes #{{ solicitacao.protocolo }}{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Left Column: Content & Timeline -->
+    <div class="lg:col-span-2 space-y-8">
+        <!-- Ticket Info Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div class="p-6 md:p-8">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-2xl font-black text-noturno dark:text-white tracking-tighter">#{{ solicitacao.protocolo }}</span>
+                        {% set s_color = 'gray' %}
+                        {% if solicitacao.status == 'Aberto' %}{% set s_color = 'blue' %}
+                        {% elif solicitacao.status == 'Em atendimento' %}{% set s_color = 'royal' %}
+                        {% elif solicitacao.status == 'Resolvido' %}{% set s_color = 'green' %}
+                        {% elif solicitacao.status == 'Cancelado' %}{% set s_color = 'red' %}
+                        {% endif %}
+                        <span class="px-3 py-1 bg-{{ s_color }}-100 dark:bg-{{ s_color }}-900/30 text-{{ s_color }}-700 dark:text-{{ s_color }}-400 text-xs font-bold rounded-full uppercase tracking-wider">
+                            {{ solicitacao.status }}
+                        </span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="material-symbols-outlined text-gray-400 text-sm">schedule</span>
+                        <span class="text-xs text-gray-500">Aberto em {{ solicitacao.criado_em.strftime('%d/%m/%Y %H:%M') }}</span>
+                    </div>
+                </div>
+
+                <h1 class="text-xl md:text-2xl font-bold text-noturno dark:text-white mb-4">{{ solicitacao.titulo }}</h1>
+                
+                <div class="bg-gray-50 dark:bg-gray-900/50 rounded-2xl p-6 text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {{ solicitacao.descricao }}
+                </div>
+
+                <div class="mt-6 flex flex-wrap gap-3">
+                    <div class="flex items-center px-3 py-1 bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-lg text-xs">
+                        <span class="material-symbols-outlined text-xs mr-2 text-gray-400">category</span>
+                        <span class="font-medium">{{ solicitacao.categoria.nome }}</span>
+                    </div>
+                    <div class="flex items-center px-3 py-1 bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-lg text-xs">
+                        <span class="material-symbols-outlined text-xs mr-2 text-{{ 'red-500' if solicitacao.prioridade == 'Urgente' else 'gray-400' }}">flag</span>
+                        <span class="font-bold text-{{ 'red-600' if solicitacao.prioridade == 'Urgente' else 'inherit' }}">{{ solicitacao.prioridade }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="space-y-6">
+            <h2 class="text-lg font-bold text-noturno dark:text-white flex items-center">
+                <span class="material-symbols-outlined mr-2 text-royal">forum</span>
+                Histórico de Conversas
+            </h2>
+
+            <div class="relative pl-8 space-y-8 before:content-[''] before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-200 dark:before:bg-gray-700">
+                {% for m in solicitacao.mensagens %}
+                <div class="relative">
+                    <div class="absolute -left-8 top-1.5 w-6 h-6 rounded-full border-4 border-gray-50 dark:border-noturno 
+                        {% if m.autor.perfil == 'cliente' %}bg-royal{% else %}bg-blue-400{% endif %}"></div>
+                    
+                    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div class="px-5 py-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-700 bg-opacity-50">
+                            <div class="flex items-center">
+                                <span class="text-sm font-bold text-noturno dark:text-white mr-2">{{ m.autor.nome }}</span>
+                                <span class="text-[10px] px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 rounded uppercase font-bold">{{ m.autor.perfil }}</span>
+                            </div>
+                            <span class="text-[10px] text-gray-400">{{ m.criado_em.strftime('%d/%m %H:%M') }}</span>
+                        </div>
+                        <div class="p-5 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                            {{ m.conteudo }}
+                        </div>
+                        {% if m.anexos.count() > 0 %}
+                        <div class="px-5 py-3 bg-gray-50 dark:bg-gray-900/50 flex flex-wrap gap-2">
+                            {% for a in m.anexos %}
+                            <a href="{{ url_for('utils.uploaded_file', filename=a.caminho) }}" class="flex items-center px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium text-royal hover:shadow-sm transition-all">
+                                <span class="material-symbols-outlined text-xs mr-2">attachment</span>
+                                {{ a.nome_original or a.caminho }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Reply Box -->
+        {% if solicitacao.status not in ['Fechado', 'Cancelado'] %}
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 md:p-8">
+            <h3 class="text-lg font-bold text-noturno dark:text-white mb-4">Responder Chamado</h3>
+            <form action="{{ url_for('solicitacoes.responder', id=solicitacao.id) }}" method="post" enctype="multipart/form-data" class="space-y-6">
+                <div>
+                    <textarea 
+                        name="mensagem" 
+                        rows="5" 
+                        class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-royal transition-all dark:text-white"
+                        placeholder="Descreva sua resposta ou solicitação de informação..."
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Anexar Arquivos</label>
+                        <input type="file" name="anexos" multiple class="text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-royal hover:file:bg-blue-100">
+                    </div>
+
+                    <div class="flex items-center space-x-4">
+                        {% if current_user.perfil in ['atendente', 'admin'] %}
+                        <div class="flex items-center space-x-2">
+                            <label class="text-xs font-bold text-gray-500 uppercase">Novo Status</label>
+                            <select name="status" class="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-royal dark:text-white">
+                                <option value="{{ solicitacao.status }}">Manter: {{ solicitacao.status }}</option>
+                                <option value="Em atendimento">Em atendimento</option>
+                                <option value="Aguardando cliente">Aguardando cliente</option>
+                                <option value="Aguardando terceiros">Aguardando terceiros</option>
+                                <option value="Resolvido">Resolvido</option>
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <button type="submit" class="px-8 py-3 bg-royal text-white font-bold rounded-xl shadow-lg shadow-royal/20 hover:bg-blue-700 transform hover:-translate-y-0.5 transition-all">
+                            Enviar Resposta
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        {% elif solicitacao.status == 'Resolvido' and current_user.perfil == 'cliente' %}
+        <!-- Reabertura (RF008) e Avaliação (RF009) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 text-center">
+                <span class="material-symbols-outlined text-4xl text-royal mb-4">history</span>
+                <h3 class="font-bold text-lg mb-2">Não resolveu?</h3>
+                <p class="text-sm text-gray-500 mb-6">Você pode reabrir este chamado em até 7 dias.</p>
+                <form action="{{ url_for('solicitacoes.reabrir', id=solicitacao.id) }}" method="post">
+                    <button type="submit" class="w-full py-3 bg-royal/10 text-royal font-bold rounded-xl hover:bg-royal hover:text-white transition-all">Reabrir Chamado</button>
+                </form>
+            </div>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 text-center">
+                <span class="material-symbols-outlined text-4xl text-green-500 mb-4">star</span>
+                <h3 class="font-bold text-lg mb-2">Avalie o Atendimento</h3>
+                <p class="text-sm text-gray-500 mb-6">Sua opinião nos ajuda a melhorar.</p>
+                <button @click="$dispatch('open-eval-modal')" class="w-full py-3 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 shadow-lg shadow-green-500/20 transition-all">Avaliar Agora</button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Column: Sidebar -->
+    <div class="space-y-8">
+        {% if current_user.perfil == 'admin' %}
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+            <h3 class="font-bold text-noturno dark:text-white mb-6 flex items-center">
+                <span class="material-symbols-outlined mr-2 text-royal">settings</span>
+                Gestão Admin
+            </h3>
+            
+            <form action="{{ url_for('solicitacoes.atribuir', id=solicitacao.id) }}" method="post" class="space-y-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Atribuir a</label>
+                    <div class="flex gap-2">
+                        <select name="atendente_id" class="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-royal dark:text-white">
+                            <option value="">Ninguém</option>
+                            {% for a in atendentes %}
+                            <option value="{{ a.id }}" {% if solicitacao.atendente_id == a.id %}selected{% endif %}>{{ a.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="p-2 bg-royal text-white rounded-xl hover:bg-blue-700 transition-colors">
+                            <span class="material-symbols-outlined text-sm">done</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- SLA Info Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 overflow-hidden relative">
+            {% if solicitacao.prazo_sla and solicitacao.status not in ['Resolvido', 'Fechado'] %}
+                {% set expired = solicitacao.prazo_sla < now %}
+                <div class="absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full {% if expired %}bg-red-500/10{% else %}bg-royal/10{% endif %}"></div>
+                <h3 class="font-bold text-noturno dark:text-white mb-4">Controle de SLA</h3>
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-1">Vencimento em</p>
+                        <p class="text-sm font-bold {% if expired %}text-red-500{% else %}text-noturno dark:text-white{% endif %}">
+                            {{ solicitacao.prazo_sla.strftime('%d/%m/%Y às %H:%M') }}
+                        </p>
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <span class="material-symbols-outlined text-3xl text-gray-200 mb-2">timer_off</span>
+                    <p class="text-xs text-gray-400">SLA não aplicável ou concluído.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Avaliação -->
+<div x-data="{ open: false, nota: 5 }" x-show="open" @open-eval-modal.window="open = true" class="fixed inset-0 z-[60] overflow-y-auto" x-cloak>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-black/50 transition-opacity" @click="open = false"></div>
+        <div class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center">
+            <h3 class="text-xl font-bold mb-2">Sua avaliação</h3>
+            <p class="text-gray-500 text-sm mb-6">Como foi o atendimento deste chamado?</p>
+            
+            <form action="{{ url_for('solicitacoes.avaliar', id=solicitacao.id) }}" method="post" class="space-y-6">
+                <div class="flex justify-center space-x-2">
+                    <template x-for="i in 5">
+                        <button type="button" @click="nota = i" class="text-3xl transition-all transform hover:scale-110" :class="nota >= i ? 'text-yellow-400' : 'text-gray-200'">
+                            <span class="material-symbols-outlined font-fill text-4xl">star</span>
+                        </button>
+                    </template>
+                    <input type="hidden" name="nota" :value="nota">
+                </div>
+                
+                <textarea name="comentario" placeholder="Deixe um comentário opcional..." class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-royal"></textarea>
+                
+                <div class="flex flex-col gap-3">
+                    <button type="submit" class="w-full py-3 bg-green-500 text-white font-bold rounded-xl shadow-lg shadow-green-500/20 hover:bg-green-600 transition-all">Enviar Avaliação</button>
+                    <button type="button" @click="open = false" class="text-sm font-bold text-gray-500">Voltar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

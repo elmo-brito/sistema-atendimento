@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Gestão de Usuários - SAC Premium{% endblock %}
+{% block breadcrumb %}Administração / Usuários{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-noturno dark:text-white">Usuários</h1>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
+                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Usuário</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Email</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Perfil</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    {% for u in usuarios %}
+                    <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="h-8 w-8 rounded-full bg-royal/10 text-royal flex items-center justify-center font-bold text-xs uppercase mr-3">
+                                    {{ u.nome[:2] }}
+                                </div>
+                                <span class="text-sm font-bold text-noturno dark:text-white">{{ u.nome }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ u.email }}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-0.5 bg-royal/10 text-royal text-[10px] font-bold rounded uppercase">{{ u.perfil }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-0.5 {% if u.ativo %}bg-green-50 text-green-600{% else %}bg-red-50 text-red-600{% endif %} text-[10px] font-bold rounded uppercase">
+                                {{ 'Ativo' if u.ativo else 'Inativo' }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <button @click="$dispatch('open-user-modal', { id: {{ u.id }}, nome: '{{ u.nome }}', perfil: '{{ u.perfil }}' })" class="p-2 text-gray-400 hover:text-royal transition-colors">
+                                <span class="material-symbols-outlined">edit</span>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Edição de Perfil -->
+<div 
+    x-data="{ open: false, userId: null, userName: '', perfil: '' }" 
+    x-show="open" 
+    @open-user-modal.window="open = true; userId = $event.detail.id; userName = $event.detail.nome; perfil = $event.detail.perfil"
+    class="fixed inset-0 z-[60] overflow-y-auto" 
+    x-cloak
+>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-black/50 transition-opacity" @click="open = false"></div>
+        
+        <div class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-sm w-full p-8 overflow-hidden">
+            <h3 class="text-xl font-bold mb-2">Editar Usuário</h3>
+            <p class="text-gray-500 text-sm mb-6">Alterar perfil de <span x-text="userName" class="text-royal font-bold"></span></p>
+            
+            <form :action="'/admin/usuario/' + userId + '/perfil'" method="post" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Novo Perfil</label>
+                    <select name="perfil" x-model="perfil" class="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-royal">
+                        <option value="cliente">Cliente</option>
+                        <option value="atendente">Atendente</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-8">
+                    <button type="button" @click="open = false" class="px-6 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-all">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-royal text-white text-sm font-bold rounded-xl shadow-lg shadow-royal/20 hover:bg-blue-700 transition-all">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

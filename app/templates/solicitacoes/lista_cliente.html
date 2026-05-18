@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Meus Chamados - SAC Premium{% endblock %}
+{% block breadcrumb %}Chamados / Meus Chamados{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-noturno dark:text-white">Meus Chamados</h1>
+            <p class="text-gray-500 dark:text-gray-400">Acompanhe o andamento das suas solicitações.</p>
+        </div>
+        <a href="{{ url_for('solicitacoes.nova') }}" class="flex items-center px-6 py-3 bg-royal text-white rounded-xl text-sm font-bold shadow-lg shadow-royal/20 hover:bg-blue-700 transition-all">
+            <span class="material-symbols-outlined mr-2">add</span>
+            Abrir Novo Chamado
+        </a>
+    </div>
+
+    <!-- Stats for Client -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total</p>
+            <p class="text-2xl font-black text-noturno dark:text-white">{{ solicitacoes|length }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <p class="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Em Aberto</p>
+            <p class="text-2xl font-black text-royal">{{ solicitacoes|selectattr('status', 'in', ['Aberto', 'Em atendimento', 'Aguardando cliente'])|list|length }}</p>
+        </div>
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <p class="text-[10px] font-bold text-green-400 uppercase tracking-widest mb-1">Resolvidos</p>
+            <p class="text-2xl font-black text-green-500">{{ solicitacoes|selectattr('status', 'equalto', 'Resolvido')|list|length }}</p>
+        </div>
+    </div>
+
+    <!-- Tickets Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
+                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Protocolo</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Assunto</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-center">Status</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase">Última Atualização</th>
+                        <th class="px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right">Ação</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    {% for s in solicitacoes %}
+                    <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="font-mono text-xs font-bold text-royal bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">#{{ s.protocolo }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-bold text-noturno dark:text-white truncate max-w-xs">{{ s.titulo }}</div>
+                            <div class="text-[10px] text-gray-400">{{ s.categoria.nome }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% set s_color = 'gray' %}
+                            {% if s.status == 'Aberto' %}{% set s_color = 'ciano' %}
+                            {% elif s.status == 'Em atendimento' %}{% set s_color = 'royal' %}
+                            {% elif s.status == 'Resolvido' %}{% set s_color = 'green' %}
+                            {% elif s.status == 'Aguardando cliente' %}{% set s_color = 'orange' %}
+                            {% endif %}
+                            <span class="px-3 py-1 bg-{{ s_color }}-100 dark:bg-{{ s_color }}-900/30 text-{{ s_color if s_color != 'ciano' else 'royal' }}-700 dark:text-{{ s_color }}-400 text-[10px] font-bold rounded-full uppercase">
+                                {{ s.status }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
+                            {{ s.atualizado_em.strftime('%d/%m/%Y %H:%M') }}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{{ url_for('solicitacoes.detalhes', id=s.id) }}" class="inline-flex items-center px-4 py-2 bg-gray-50 dark:bg-gray-700 hover:bg-royal hover:text-white text-xs font-bold rounded-xl transition-all">
+                                Ver Detalhes
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <p class="text-gray-500">Você ainda não possui chamados abertos.</p>
+                            <a href="{{ url_for('solicitacoes.nova') }}" class="inline-block mt-4 text-royal font-bold hover:underline">Abrir meu primeiro chamado</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
