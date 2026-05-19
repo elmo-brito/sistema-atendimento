@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from app.repositories.solicitacao_repository import SolicitacaoRepository
 from app.repositories.categoria_repository import CategoriaRepository
 from app.repositories.usuario_repository import UsuarioRepository
-from app.models import SLA, Solicitacao, Mensagem, Anexo, LogAuditoria, Avaliacao
+from app.models import Solicitacao, Mensagem, Anexo, SLA, LogAuditoria, Avaliacao
 from app import db
 
 class SolicitacaoService:
@@ -109,7 +109,7 @@ class SolicitacaoService:
         mensagem = Mensagem(
             solicitacao_id=solicitacao.id,
             usuario_id=usuario_id,
-            conteudo=mensagem_texto or "Atualização de status"
+            mensagem=mensagem_texto or "Atualização de status"
         )
         db.session.add(mensagem)
 

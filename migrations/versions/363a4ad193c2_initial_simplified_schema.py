@@ -1,8 +1,8 @@
-"""Recreate DB with prazo_sla and updated structure
+"""initial_simplified_schema
 
-Revision ID: fc5a1434739a
+Revision ID: 363a4ad193c2
 Revises: 
-Create Date: 2026-05-14 11:20:26.397223
+Create Date: 2026-05-18 23:29:49.160974
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'fc5a1434739a'
+revision = '363a4ad193c2'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -22,6 +22,10 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('nome', sa.String(length=50), nullable=False),
     sa.Column('descricao', sa.String(length=200), nullable=True),
+    sa.Column('icone', sa.String(length=50), nullable=True),
+    sa.Column('cor', sa.String(length=20), nullable=True),
+    sa.Column('ativo', sa.Boolean(), nullable=True),
+    sa.Column('prazo_horas', sa.Integer(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('nome')
     )
@@ -31,12 +35,39 @@ def upgrade():
     sa.Column('email', sa.String(length=120), nullable=False),
     sa.Column('senha_hash', sa.String(length=256), nullable=False),
     sa.Column('perfil', sa.String(length=20), nullable=False),
+    sa.Column('ativo', sa.Boolean(), nullable=True),
+    sa.Column('foto_perfil', sa.String(length=255), nullable=True),
+    sa.Column('reset_token', sa.String(length=100), nullable=True),
+    sa.Column('reset_token_exp', sa.DateTime(), nullable=True),
+    sa.Column('tentativas_falhas', sa.Integer(), nullable=True),
+    sa.Column('bloqueado_ate', sa.DateTime(), nullable=True),
     sa.Column('criado_em', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('usuarios', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_usuarios_email'), ['email'], unique=True)
 
+    op.create_table('artigos',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('titulo', sa.String(length=150), nullable=False),
+    sa.Column('conteudo', sa.Text(), nullable=False),
+    sa.Column('categoria_id', sa.Integer(), nullable=True),
+    sa.Column('criado_em', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['categoria_id'], ['categorias.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('logs_auditoria',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('usuario_id', sa.Integer(), nullable=True),
+    sa.Column('acao', sa.String(length=100), nullable=False),
+    sa.Column('tabela', sa.String(length=50), nullable=True),
+    sa.Column('registro_id', sa.Integer(), nullable=True),
+    sa.Column('detalhes', sa.Text(), nullable=True),
+    sa.Column('ip', sa.String(length=45), nullable=True),
+    sa.Column('criado_em', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['usuario_id'], ['usuarios.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('solicitacoes',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('protocolo', sa.String(length=20), nullable=False),
@@ -46,6 +77,7 @@ def upgrade():
     sa.Column('titulo', sa.String(length=150), nullable=False),
     sa.Column('descricao', sa.Text(), nullable=False),
     sa.Column('status', sa.String(length=30), nullable=True),
+    sa.Column('prioridade', sa.String(length=20), nullable=True),
     sa.Column('prazo_sla', sa.DateTime(), nullable=True),
     sa.Column('criado_em', sa.DateTime(), nullable=True),
     sa.Column('atualizado_em', sa.DateTime(), nullable=True),
@@ -57,6 +89,16 @@ def upgrade():
     with op.batch_alter_table('solicitacoes', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_solicitacoes_protocolo'), ['protocolo'], unique=True)
 
+    op.create_table('avaliacoes',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('solicitacao_id', sa.Integer(), nullable=False),
+    sa.Column('nota', sa.Integer(), nullable=False),
+    sa.Column('comentario', sa.Text(), nullable=True),
+    sa.Column('criado_em', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['solicitacao_id'], ['solicitacoes.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('solicitacao_id')
+    )
     op.create_table('historico',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('solicitacao_id', sa.Integer(), nullable=False),
@@ -81,13 +123,25 @@ def upgrade():
     sa.ForeignKeyConstraint(['usuario_id'], ['usuarios.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('sla_logs',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('solicitacao_id', sa.Integer(), nullable=False),
+    sa.Column('vencimento', sa.DateTime(), nullable=False),
+    sa.Column('cumprido', sa.Boolean(), nullable=True),
+    sa.Column('resolvido_em', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['solicitacao_id'], ['solicitacoes.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('anexos',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('mensagem_id', sa.Integer(), nullable=False),
+    sa.Column('solicitacao_id', sa.Integer(), nullable=False),
+    sa.Column('mensagem_id', sa.Integer(), nullable=True),
     sa.Column('caminho', sa.String(length=255), nullable=False),
+    sa.Column('nome_original', sa.String(length=255), nullable=True),
     sa.Column('tipo', sa.String(length=50), nullable=True),
     sa.Column('tamanho', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['mensagem_id'], ['mensagens.id'], ),
+    sa.ForeignKeyConstraint(['solicitacao_id'], ['solicitacoes.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###
@@ -96,12 +150,16 @@ def upgrade():
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('anexos')
+    op.drop_table('sla_logs')
     op.drop_table('mensagens')
     op.drop_table('historico')
+    op.drop_table('avaliacoes')
     with op.batch_alter_table('solicitacoes', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_solicitacoes_protocolo'))
 
     op.drop_table('solicitacoes')
+    op.drop_table('logs_auditoria')
+    op.drop_table('artigos')
     with op.batch_alter_table('usuarios', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_usuarios_email'))
 

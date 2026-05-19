@@ -55,6 +55,11 @@
 - **Passos:** Tentar acessar `/admin/dashboard` com perfil `cliente`.
 - **Resultado esperado:** Bloqueio de acesso (403 ou redirecionamento com erro).
 
+### 4.3 Integridade do Acesso Admin
+- **Cenário:** Verificação de que o administrador pode acessar todas as áreas administrativas.
+- **Passos:** Logar como Administrador e acessar `/admin/usuarios`, `/admin/categorias` e `/admin/dashboard`.
+- **Resultado esperado:** Acesso concedido (200 OK) e visualização correta dos dados.
+
 ## 5. Testes de Anexos
 
 ### 5.1 Validação de Extensão e Tamanho

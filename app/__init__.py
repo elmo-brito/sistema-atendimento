@@ -60,3 +60,8 @@ def create_app(config_class=Config):
     return app
 
 from app import models
+
+@login.user_loader
+def load_user(id):
+    from app.models.usuario import Usuario
+    return Usuario.query.get(int(id))

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_required, current_user
-from app.models import Solicitacao, Categoria, Mensagem, Usuario, LogAuditoria
+from app.models import Solicitacao, Categoria, Mensagem, Usuario
 from app.services.solicitacao_service import SolicitacaoService
 from app.utils.auth import role_required
 from app import db
@@ -12,7 +12,7 @@ solicitacao_service = SolicitacaoService()
 @bp.route('/minhas-solicitacoes')
 @login_required
 def lista_cliente():
-    solicitacoes = current_user.solicitacoes_criadas.order_by(Solicitacao.criado_em.desc()).all()
+    solicitacoes = current_user.solicitacoes_cliente.order_by(Solicitacao.criado_em.desc()).all()
     return render_template('solicitacoes/lista_cliente.html', solicitacoes=solicitacoes)
 
 @bp.route('/atendimento')
@@ -53,13 +53,13 @@ def nova():
             arquivos = request.files.getlist('anexos')
             
             # Criar mensagem inicial se houver anexos (ou sempre, para timeline)
-            mensagem = Mensagem(solicitacao_id=solicitacao.id, usuario_id=current_user.id, conteudo=descricao)
+            mensagem = Mensagem(solicitacao_id=solicitacao.id, usuario_id=current_user.id, mensagem=descricao)
             db.session.add(mensagem)
             db.session.flush()
             
             for file in arquivos:
                 if file.filename:
-                    save_anexo(file, mensagem.id)
+                    save_anexo(file, solicitacao_id=solicitacao.id, mensagem_id=mensagem.id)
             
             db.session.commit()
             flash(f'Solicitação registrada com sucesso! Protocolo: {solicitacao.protocolo}', 'success')
@@ -119,7 +119,7 @@ def responder(id):
             from app.utils.uploads import save_anexo
             for file in arquivos:
                 if file.filename:
-                    save_anexo(file, mensagem.id)
+                    save_anexo(file, solicitacao_id=solicitacao.id, mensagem_id=mensagem.id)
                     
             db.session.commit()
             flash('Resposta enviada com sucesso.', 'success')

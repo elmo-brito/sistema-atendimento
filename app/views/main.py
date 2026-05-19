@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request
 from flask_login import current_user
-from app.models import Artigo, Categoria
+from app.models import Solicitacao, Categoria, Mensagem, Usuario
+
 
 bp = Blueprint('main', __name__)
 

@@ -56,12 +56,12 @@
     * **Atendente:** Seus chamados e fila comum.
     * **Admin:** Acesso irrestrito.
 * **RN008 - Regras de Anexos:** Limite de 5MB por arquivo; extensões permitidas: PDF, JPG, PNG, DOCX, TXT.
-* **RN009 - Regras de Prioridade:** Definida automaticamente pelo SLA (Menor prazo = Maior prioridade), mas ajustável pelo Admin.
+* **RNF011 - UX Responsiva:** Uso de frameworks modernos (Tailwind CSS) e Alpine.js para fluidez em qualquer tela.
 
 ## 2. Arquitetura
 
 ### 2.1 Estrutura MVC e Camadas
-* **Models:** Entidades ORM que definem o esquema do banco de dados.
+* **Models:** Entidades ORM que definem o esquema do banco de dados (SQLAlchemy).
 * **Views:** Blueprints Flask responsáveis pelo roteamento e renderização (HTML/JSON).
 * **Controllers:** Lógica de controle de fluxo contida nas rotas das Views.
 * **Services:** Onde reside 100% da lógica de negócio (ex: cálculo de SLA, atribuição).
@@ -79,13 +79,13 @@
   /repositories # Consultas especializadas
   /services     # Lógica de negócio (o "coração" do sistema)
   /views        # Blueprints (auth, admin, solicitacoes, api)
-  /templates    # Interface Jinja2
-  /static       # Assets (CSS/JS)
+  /templates    # Interface Jinja2 (com Tailwind CSS e Alpine.js)
+  /static       # Assets (CSS compiled by Tailwind, JS)
   /utils        # Helpers (uploads, validadores)
 ```
 
 ### 2.4 Fluxos do Sistema
-1. **Login:** Validação -> Criação de Sessão -> Redirecionamento por Perfil.
+1. **Login:** Validação -> Criação de Sessão -> Redirecionamento por Perfil (Admin, Atendente, Cliente).
 2. **Abertura de Chamado:** Seleção Categoria -> Geração Protocolo -> Cálculo SLA -> Atribuição -> Registro Timeline.
 3. **SLA:** Monitoramento de tempo -> Alerta de Vencimento -> Escalonamento.
 4. **Encerramento:** Mudança Status -> Liberação de Avaliação -> Registro Auditoria.
@@ -93,7 +93,8 @@
 ## 3. Modelos de Dados (ORM)
 
 ### Usuario
-* `id` (int, PK), `nome` (str), `email` (str, Unique), `senha_hash` (str), `perfil` (enum), `ativo` (bool), `criado_em` (datetime).
+* `id` (int, PK), `nome` (str), `email` (str, Unique), `senha_hash` (str), `perfil` (str: admin, atendente, cliente), `ativo` (bool), `foto_perfil` (str), `tentativas_falhas` (int), `bloqueado_ate` (datetime), `criado_em` (datetime).
+
 
 ### Solicitacao
 * `id` (int, PK), `protocolo` (str, Unique), `cliente_id` (FK), `atendente_id` (FK, Nullable), `categoria_id` (FK), `titulo` (str), `descricao` (text), `status` (str), `prioridade` (str), `prazo_sla` (datetime), `criado_em` (datetime), `atualizado_em` (datetime).
