@@ -1,36 +1,26 @@
-# Relatório de Refatoração e Otimização - SAC Premium
+# Relatório de Refatoração e Otimização
 
-Este documento detalha as mudanças realizadas para alinhar o sistema estritamente às especificações do arquivo `docs/03-especs.md` e otimizar a arquitetura para desempenho e manutenibilidade.
+## Alterações Realizadas
 
-## 1. Simplificação e Alinhamento do Modelo de Dados
-Foi realizada uma "limpeza" profunda no banco de dados para remover abstrações desnecessárias que não constavam na especificação original.
+### 1. Centralização da Lógica de Tempo (UTC)
+- Criado utilitário `app/utils/datetime_utils.py` com a função `utc_now()`.
+- Refatorado `app/services/solicitacao_service.py` para utilizar `utc_now()`, eliminando chamadas repetitivas e verbosas a `datetime.now(timezone.utc).replace(tzinfo=None)`.
+- Garante consistência em todo o sistema para cálculos de SLA e registros de data.
 
-- **Remoção de RBAC Complexo**: As tabelas `Papel` (Roles) e `Permissao` foram removidas. O controle de acesso agora é baseado no campo `perfil` (`cliente`, `atendente`, `admin`) no modelo `Usuario`, reduzindo o número de joins em consultas de autenticação.
-- **Pruning de Modelos**: Tabelas como `Subcategoria`, `ConfiguracaoGlobal` e `RegraAutomacao` foram eliminadas por não estarem previstas no escopo simplificado.
-- **Novas Entidades**: Implementação dos modelos `Avaliacao` (RF009) e `Artigo` (RF010) para suporte à Base de Conhecimento e Feedback do Cliente.
+### 2. Implementação de Cache
+- Adicionado `Flask-Caching` ao projeto.
+- Implementado cache no `CategoriaRepository` para as funções `get_all` e `get_by_id`.
+- Reduz o número de consultas ao banco de dados para dados que mudam raramente (Categorias), melhorando o tempo de resposta das telas de abertura e listagem de chamados.
 
-## 2. Otimização de Consultas e Camada de Repositório
-As consultas ao banco de dados foram otimizadas para garantir escalabilidade.
+### 3. Preparação para Processamento em Segundo Plano
+- Adicionado `Flask-Executor` para permitir a execução de tarefas assíncronas no futuro.
+- A infraestrutura está pronta para mover notificações e processamentos pesados para threads separadas sem bloquear a requisição do usuário.
 
-- **Atribuição Inteligente (MTTA)**: A lógica `get_least_busy_atendente` no `UsuarioRepository` foi otimizada usando uma **subquery** que conta chamados ativos diretamente no banco, evitando o carregamento de todos os usuários na memória do Python para processamento.
-- **Busca Global**: Centralização da lógica de filtro e busca no `SolicitacaoRepository`, permitindo filtragem combinada (status, prioridade, categoria) em uma única query.
-- **Timeline Performance**: Uso de `cascade="all, delete-orphan"` e carregamento `lazy='dynamic'` para gerenciar grandes volumes de mensagens e anexos sem comprometer o tempo de resposta da página de detalhes.
+### 4. Modularização e Limpeza
+- Atualizado `requirements.txt` com as novas dependências.
+- Atualizado `app/__init__.py` para inicializar as novas extensões.
 
-## 3. Modularização da Lógica de Negócio (Services)
-A lógica foi movida das Views para Services especializados, facilitando o TDD e a reutilização.
-
-- **`AuthService`**: Centraliza registro, login (com verificação de status `ativo`) e fluxo de recuperação de senha.
-- **`SolicitacaoService`**: Gere o ciclo de vida completo do chamado, incluindo a regra de **reabertura em 7 dias** (RN004) e **encerramento automático** (RN005).
-- **`ReportService`**: Implementação de métricas calculadas como **MTTR** (Mean Time To Resolve) e **MTTA** (Mean Time To Assign), com exportação eficiente para CSV.
-
-## 4. Melhorias na Interface e UX
-- **Mobile-First**: Refatoração completa dos templates Jinja2 usando Tailwind CSS para garantir ausência de scroll horizontal em telas de 375px (RF021).
-- **Feedback Visual**: Implementação de badges de status e prioridade consistentes em todo o sistema.
-- **Redução de Dependências de Frontend**: Migração de lógicas complexas para Alpine.js, mantendo o frontend leve e reativo.
-
-## 5. Estabilização e Testes
-- **Suite de Testes Atualizada**: Todos os 15 testes automatizados foram refatorados para validar o novo sistema de perfis e regras de SLA.
-- **Cobertura**: Foco em 100% de cobertura nos métodos críticos de `SolicitacaoService` (Cálculo de SLA e Atribuição).
-
----
-*Relatório gerado em 18 de Maio de 2026.*
+## Impacto na Performance
+- Redução de latência em rotas que consultam categorias repetidamente.
+- Código mais limpo e fácil de manter (DRY - Don't Repeat Yourself).
+- Preparado para escalabilidade com suporte a jobs em background.

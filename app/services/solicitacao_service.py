@@ -1,9 +1,10 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from app.repositories.solicitacao_repository import SolicitacaoRepository
 from app.repositories.categoria_repository import CategoriaRepository
 from app.repositories.usuario_repository import UsuarioRepository
 from app.models import Solicitacao, Mensagem, Anexo, SLA, LogAuditoria, Avaliacao
+from app.utils.datetime_utils import utc_now
 from app import db
 
 class SolicitacaoService:
@@ -18,13 +19,12 @@ class SolicitacaoService:
             raise ValueError("Categoria não encontrada.")
 
         # Gerar protocolo: ANO-HASH (RF004)
-        ano = datetime.now(timezone.utc).replace(tzinfo=None).year
-        hash_part = uuid.uuid4().hex[:6].upper()
-        protocolo = f"{ano}-{hash_part}"
+        agora = utc_now()
+        protocolo = f"{agora.year}-{uuid.uuid4().hex[:6].upper()}"
         
         # Calcular SLA (RN001, RN002)
         prazo_horas = categoria.prazo_horas if categoria.prazo_horas else 48
-        prazo_sla = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=prazo_horas)
+        prazo_sla = agora + timedelta(hours=prazo_horas)
         
         # Atribuição Automática (RF004)
         atendente = self.user_repo.get_least_busy_atendente()
@@ -72,14 +72,15 @@ class SolicitacaoService:
             raise ValueError("Somente solicitações resolvidas ou fechadas podem ser reabertas.")
         
         # Regra de 7 dias (RN004)
-        if solicitacao.atualizado_em < datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7):
+        agora = utc_now()
+        if solicitacao.atualizado_em < agora - timedelta(days=7):
             raise ValueError("O prazo para reabertura de 7 dias expirou.")
         
         solicitacao.status = 'Aberto'
         
         # Novo ciclo de SLA (RN001)
         prazo_horas = solicitacao.categoria.prazo_horas if solicitacao.categoria.prazo_horas else 48
-        solicitacao.prazo_sla = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=prazo_horas)
+        solicitacao.prazo_sla = agora + timedelta(hours=prazo_horas)
         
         self.repo.update(solicitacao)
         
@@ -119,8 +120,9 @@ class SolicitacaoService:
             if novo_status == 'Resolvido':
                 sla_log = SLA.query.filter_by(solicitacao_id=solicitacao.id).order_by(SLA.vencimento.desc()).first()
                 if sla_log and not sla_log.resolvido_em:
-                    sla_log.resolvido_em = datetime.now(timezone.utc).replace(tzinfo=None)
-                    sla_log.cumprido = sla_log.resolvido_em <= sla_log.vencimento
+                    agora = utc_now()
+                    sla_log.resolvido_em = agora
+                    sla_log.cumprido = agora <= sla_log.vencimento
                     db.session.add(sla_log)
 
             self.repo.update(solicitacao)
@@ -161,7 +163,7 @@ class SolicitacaoService:
 
     def encerrar_automaticamente(self):
         # Chamados em "Aguardando cliente" por mais de 5 dias (RN005)
-        limite = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=5)
+        limite = utc_now() - timedelta(days=5)
         solicitacoes = self.repo.model.query.filter_by(status='Aguardando cliente')\
             .filter(Solicitacao.atualizado_em < limite).all()
         

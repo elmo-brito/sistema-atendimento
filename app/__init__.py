@@ -2,11 +2,15 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
+from flask_caching import Cache
+from flask_executor import Executor
 from config import Config
 
 db = SQLAlchemy()
 migrate = Migrate()
 login = LoginManager()
+cache = Cache()
+executor = Executor()
 login.login_view = 'auth.login'
 login.login_message = 'Por favor, faça login para acessar esta página.'
 
@@ -17,6 +21,8 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     login.init_app(app)
+    cache.init_app(app)
+    executor.init_app(app)
 
     from app.views import auth, main, solicitacoes, admin, api, reports
     from app.utils import uploads
