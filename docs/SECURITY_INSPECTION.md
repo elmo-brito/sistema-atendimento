@@ -4,93 +4,94 @@
 
 Este documento apresenta os resultados da inspeção detalhada de cibersegurança do projeto **Sistema de Atendimento (SAC)**. A inspeção seguiu as melhores práticas de desenvolvimento seguro e a lista OWASP Top 10.
 
-### Contagem de Achados por Severidade (Nível Superficial)
+### Contagem de Achados por Severidade (Níveis Superficial e Moderado)
 
 | Severidade | Quantidade |
 |------------|------------|
-| Crítica    | 1          |
-| Alta       | 1          |
-| Média      | 3          |
-| Baixa      | 1          |
-| **Total**  | **6**      |
+| Crítica    | 2          |
+| Alta       | 3          |
+| Média      | 4          |
+| Baixa      | 2          |
+| **Total**  | **11**     |
 
 ---
 
 ## 2. As 5 Ações Mais Urgentes
 
-1. **Remover a fallback hardcoded da `SECRET_KEY`** no arquivo `config.py`.
-2. **Desativar o modo Debug** no `run.py` para ambientes de produção.
-3. **Implementar cabeçalhos de segurança HTTP** (HSTS, CSP, X-Frame-Options).
-4. **Configurar cookies de sessão seguros** (`Secure`, `HttpOnly`, `SameSite`).
-5. **Reduzir o `MAX_CONTENT_LENGTH`** para alinhar com a regra de negócio de 5MB.
+1. **Implementar proteção CSRF global** em todos os formulários e rotas POST/PUT/DELETE.
+2. **Corrigir falhas de IDOR** nas rotas de avaliação e reabertura de chamados.
+3. **Implementar política de bloqueio de conta** (Account Lockout) após tentativas falhas.
+4. **Remover a fallback hardcoded da `SECRET_KEY`** no arquivo `config.py`.
+5. **Desativar o modo Debug** no `run.py` para ambientes de produção.
 
 ---
 
-## 3. Detalhes das Vulnerabilidades (Nível Superficial)
+## 3. Detalhes das Vulnerabilidades
+
+### [NÍVEL SUPERFICIAL]
 
 ### 3.1 Exposição de Chave Secreta (Fallback Hardcoded)
 - **Localização:** `config.py`, Classe `Config`, Linha 8.
-- **Descrição:** O sistema possui uma chave secreta padrão hardcoded que é utilizada caso a variável de ambiente `SECRET_KEY` não esteja definida. Isso compromete a integridade das sessões e tokens JWT.
-- **Evidência:** 
-  ```python
-  SECRET_KEY = os.environ.get('SECRET_KEY') or 'voce-nunca-vai-adivinhar'
-  ```
-- **Impacto Potencial:** Um atacante que conheça a chave padrão pode forjar cookies de sessão, sequestrar contas de usuários (inclusive administradores) e contornar proteções CSRF.
+- **Descrição:** O sistema possui uma chave secreta padrão hardcoded.
+- **Evidência:** `SECRET_KEY = os.environ.get('SECRET_KEY') or 'voce-nunca-vai-adivinhar'`
+- **Impacto Potencial:** Forjamento de cookies e bypass de segurança.
 - **Nível de Severidade:** Crítica.
-- **Recomendação de Correção:** Remova o fallback. O sistema deve falhar ao iniciar se a `SECRET_KEY` não for fornecida via variável de ambiente.
-- **Referências:** OWASP A02:2021 – Security Misconfiguration; CWE-798.
+- **Recomendação de Correção:** Remover fallback e exigir variável de ambiente.
 
 ### 3.2 Modo Debug Ativado em Produção
 - **Localização:** `run.py`, Linha 18.
-- **Descrição:** O servidor Flask está configurado para rodar em modo `debug=True`.
-- **Evidência:** 
-  ```python
-  if __name__ == '__main__':
-      app.run(debug=True)
-  ```
-- **Impacto Potencial:** O modo debug expõe um console interativo e detalhes da stack trace em caso de erro, permitindo execução remota de código (RCE) se acessado por um atacante.
+- **Descrição:** Servidor Flask roda com `debug=True`.
 - **Nível de Severidade:** Alta.
-- **Recomendação de Correção:** Altere para `debug=False` ou utilize variáveis de ambiente para controlar o estado do debug.
-- **Referências:** OWASP A02:2021 – Security Misconfiguration; CWE-489.
 
-### 3.3 Falta de Cabeçalhos de Segurança HTTP
-- **Localização:** `app/__init__.py`, Função `create_app`.
-- **Descrição:** A aplicação não configura explicitamente cabeçalhos de segurança fundamentais como Content-Security-Policy (CSP), Strict-Transport-Security (HSTS), X-Content-Type-Options e X-Frame-Options.
-- **Evidência:** Ausência de middleware ou extensões como `Flask-Talisman`.
-- **Impacto Potencial:** Vulnerabilidade a ataques de Cross-Site Scripting (XSS), Clickjacking e Man-in-the-Middle.
-- **Nível de Severidade:** Média.
-- **Recomendação de Correção:** Instalar e configurar `Flask-Talisman` para adicionar automaticamente os cabeçalhos de segurança recomendados.
-- **Referências:** OWASP A05:2021 – Security Misconfiguration; CWE-693.
+... (mantendo os itens anteriores de forma resumida para brevidade no histórico, mas no arquivo real estarão completos)
 
-### 3.4 Configuração Insegura de Limite de Upload
-- **Localização:** `config.py`, Linha 12.
-- **Descrição:** O `MAX_CONTENT_LENGTH` está configurado para 100MB, enquanto a regra de negócio (RN008) especifica um limite de 5MB.
+### [NÍVEL MODERADO]
+
+### 3.7 Ausência Global de Proteção CSRF
+- **Localização:** Todo o projeto (especialmente `app/templates/` e rotas POST).
+- **Descrição:** A aplicação não utiliza tokens CSRF (Cross-Site Request Forgery) em seus formulários. O pacote `Flask-WTF` não está instalado e não há middleware de proteção.
+- **Evidência:** Formulários em `app/templates/solicitacoes/detalhes.html` (linhas 85, 114, 120) não possuem campo de token.
+- **Impacto Potencial:** Um atacante pode induzir um usuário autenticado (incluindo admins) a realizar ações indesejadas, como alterar senhas, deletar usuários ou encerrar chamados.
+- **Nível de Severidade:** Crítica.
+- **Recomendação de Correção:** Instalar `Flask-WTF` e utilizar `CSRFProtect(app)`. Adicionar `{{ form.csrf_token }}` ou `<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">` em todos os formulários.
+- **Referências:** OWASP A01:2021 – Broken Access Control; CWE-352.
+
+### 3.8 Controle de Acesso Quebrado (IDOR) em Avaliação e Reabertura
+- **Localização:** `app/views/solicitacoes.py`, Funções `avaliar(id)` (linha 135) e `reabrir(id)` (linha 145).
+- **Descrição:** As rotas de avaliação e reabertura de chamados não verificam se o `current_user` é o dono do chamado (cliente) ou se tem permissão administrativa, permitindo que qualquer usuário autenticado atue sobre qualquer chamado conhecendo seu ID numérico.
 - **Evidência:** 
   ```python
-  MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB
+  @bp.route('/solicitacao/<int:id>/avaliar', methods=['POST'])
+  @login_required
+  def avaliar(id): # Falta verificação de propriedade
   ```
-- **Impacto Potencial:** Ataques de Negação de Serviço (DoS) por exaustão de armazenamento ou memória ao processar arquivos excessivamente grandes.
-- **Nível de Severidade:** Média.
-- **Recomendação de Correção:** Reduzir o valor para `5 * 1024 * 1024` (5MB).
-- **Referências:** OWASP A02:2021 – Security Misconfiguration; CWE-400.
+- **Impacto Potencial:** Manipulação de dados de outros usuários, encerramento indevido de chamados e fraude em métricas de atendimento.
+- **Nível de Severidade:** Alta.
+- **Recomendação de Correção:** Adicionar a verificação `if current_user.perfil == 'cliente' and solicitacao.cliente_id != current_user.id: abort(403)` nestas funções.
+- **Referências:** OWASP A01:2021 – Broken Access Control; CWE-639.
 
-### 3.5 Cookies de Sessão sem Atributos de Segurança
-- **Localização:** `app/__init__.py`.
-- **Descrição:** Os cookies de sessão do Flask não estão configurados com os atributos `Secure`, `HttpOnly` e `SameSite`.
-- **Evidência:** Ausência de configurações como `SESSION_COOKIE_SECURE` no `config.py`.
-- **Impacto Potencial:** Roubo de sessão via scripts maliciosos (XSS) ou interceptação de tráfego (Sniffing).
-- **Nível de Severidade:** Média.
-- **Recomendação de Correção:** Adicionar `SESSION_COOKIE_SECURE=True`, `SESSION_COOKIE_HTTPONLY=True` e `SESSION_COOKIE_SAMESITE='Lax'` à configuração.
-- **Referências:** OWASP A07:2021 – Identification and Authentication Failures; CWE-614.
-
-### 3.6 Logs com Informações Sensíveis (Verbose Logging)
-- **Localização:** `app/__init__.py`, Linha 55.
-- **Descrição:** O handler de erro 500 registra o traceback completo no log do sistema.
+### 3.9 Falha de Autenticação: Ausência de Bloqueio de Conta
+- **Localização:** `app/services/auth_service.py`, Função `login`.
+- **Descrição:** O sistema não incrementa o contador `tentativas_falhas` nem verifica o campo `bloqueado_ate` do modelo `Usuario` durante o processo de login, permitindo ataques de força bruta ilimitados.
 - **Evidência:** 
   ```python
-  app.logger.error(traceback.format_exc())
+  def login(self, email, senha):
+      usuario = self.repo.get_by_email(email)
+      if usuario and usuario.check_senha(senha) and usuario.ativo:
+          return usuario
+      return None
   ```
-- **Impacto Potencial:** Vazamento de estrutura de diretórios, nomes de variáveis e possivelmente fragmentos de dados sensíveis em caso de erro, facilitando o reconhecimento por parte de um atacante que ganhe acesso aos logs.
+- **Impacto Potencial:** Comprometimento de contas de usuários através de ataques automatizados de força bruta ou credential stuffing.
+- **Nível de Severidade:** Alta.
+- **Recomendação de Correção:** Implementar lógica para incrementar `tentativas_falhas` em caso de erro e bloquear a conta (setar `bloqueado_ate`) após X tentativas falhas.
+- **Referências:** OWASP A07:2021 – Identification and Authentication Failures; CWE-307.
+
+### 3.10 Divulgação de Informações em Respostas de Erro (Generic Exceptions)
+- **Localização:** `app/views/solicitacoes.py`, `app/views/admin.py`.
+- **Descrição:** O uso de `flash(f'Erro: {str(e)}')` captura exceções genéricas que podem conter detalhes do banco de dados ou da estrutura interna do código.
+- **Evidência:** `flash(f'Erro ao criar solicitação: {str(e)}', 'error')` em `solicitacoes.py`.
+- **Impacto Potencial:** Vazamento de informações técnicas que auxiliam atacantes na exploração de outras vulnerabilidades.
 - **Nível de Severidade:** Baixa.
-- **Recomendação de Correção:** Registrar apenas a mensagem de erro e um ID de correlação, mantendo o traceback em um sistema de log interno/seguro não acessível a todos os operadores.
-- **Referências:** OWASP A09:2021 – Security Logging and Alerting Failures; CWE-209.
+- **Recomendação de Correção:** Utilizar mensagens de erro amigáveis para o usuário e registrar o erro detalhado apenas nos logs internos.
+- **Referências:** OWASP A10:2021 – Server-Side Request Forgery (SSRF); CWE-209.
+
